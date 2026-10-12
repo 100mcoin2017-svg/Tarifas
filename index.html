@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tarifas Margarita</title>
+<style>
+  /* Layout: cabecera fija (buscador, Día/Noche, categorías) + filas grandes para leer la tarifa de un vistazo */
+  :root {
+    --bg: #f3f6f5;
+    --surface: #ffffff;
+    --border: #dbe3e0;
+    --fg: #13201c;
+    --muted: #5d6e69;
+    --accent: #0f766e;
+    --on-accent: #ffffff;
+    --day: #b45309;
+    --night: #4338ca;
+    --star: #d97706;
+    --mark: #fde68a;
+    --shadow: rgba(16, 32, 28, .12);
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c1311; --surface: #151f1c; --border: #26342f; --fg: #e4eeeb;
+      --muted: #8b9d98; --accent: #2dd4bf; --on-accent: #062520;
+      --day: #fbbf24; --night: #a5b4fc; --star: #fbbf24; --mark: #5b4a12;
+      --shadow: rgba(0, 0, 0, .4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c1311; --surface: #151f1c; --border: #26342f; --fg: #e4eeeb;
+    --muted: #8b9d98; --accent: #2dd4bf; --on-accent: #062520;
+    --day: #fbbf24; --night: #a5b4fc; --star: #fbbf24; --mark: #5b4a12;
+    --shadow: rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.35;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  button { font: inherit; color: inherit; }
+  button:focus-visible, #q:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Cabecera */
+  header {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px 10px;
+    display: grid;
+    gap: 10px;
+  }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; min-width: 0; }
+
+  /* Tasa BCV */
+  .rate { display: flex; align-items: center; gap: 6px; flex: none; }
+  .ratebox {
+    border: 0; background: transparent; text-align: right; padding: 2px 6px; border-radius: 8px;
+    cursor: pointer; display: grid; line-height: 1.15; font-variant-numeric: tabular-nums;
+  }
+  #ratelbl { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .ratebox.warn #ratelbl { color: var(--day); }
+  .ratebox .unit { font-size: 13px; color: var(--muted); }
+  #rateval { font-size: 17px; font-weight: 800; color: var(--fg); }
+  .icon-btn {
+    width: 38px; height: 38px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 10px; display: grid; place-items: center; cursor: pointer; color: var(--fg);
+  }
+  .icon-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .icon-btn.spin svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .rate-form { display: flex; gap: 6px; }
+  #rateinput {
+    flex: 1; min-width: 0; height: 42px; padding: 0 12px; font: inherit; font-size: 16px;
+    color: var(--fg); background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; outline: none;
+  }
+  #rateinput:focus { border-color: var(--accent); }
+  .btn {
+    flex: none; height: 42px; padding: 0 14px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface); font-weight: 600; cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+  .search { position: relative; }
+  .search > svg {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 2; pointer-events: none;
+  }
+  #q {
+    width: 100%; height: 46px; padding: 0 46px 0 40px;
+    font: inherit; font-size: 16px; color: var(--fg);
+    background: var(--bg); border: 1.5px solid var(--border); border-radius: 12px;
+    outline: none; -webkit-appearance: none; appearance: none;
+  }
+  #q:focus { border-color: var(--accent); }
+  #q::placeholder { color: var(--muted); }
+  #q::-webkit-search-cancel-button { display: none; }
+  #clear {
+    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+    width: 40px; height: 40px; border: 0; background: transparent; color: var(--muted);
+    border-radius: 10px; cursor: pointer; display: grid; place-items: center;
+  }
+  #clear svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.2; fill: none; }
+
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .seg {
+    display: flex; gap: 2px; padding: 3px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 11px;
+  }
+  .seg button {
+    border: 0; background: transparent; color: var(--muted);
+    font-size: 14px; font-weight: 600; min-height: 36px; padding: 0 12px;
+    border-radius: 8px; display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .seg svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px var(--shadow); }
+  .seg button[data-mode="dia"][aria-pressed="true"] { color: var(--day); }
+  .seg button[data-mode="noche"][aria-pressed="true"] { color: var(--night); }
+  .autotag { font-size: 12px; color: var(--muted); }
+  #sort {
+    margin-left: auto; min-height: 36px; padding: 0 12px;
+    border: 1px solid var(--border); background: var(--surface); border-radius: 10px;
+    font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  #sort svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  .chips {
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+    margin: 0 -16px; padding: 0 16px;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; min-height: 34px; padding: 0 12px;
+    border: 1px solid var(--border); background: var(--surface); border-radius: 999px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .chip span { color: var(--muted); font-weight: 500; margin-left: 4px; font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+  .chip[aria-pressed="true"] span { color: inherit; opacity: .8; }
+
+  /* Lista */
+  main { padding: 4px 16px 96px; }
+  .sec {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); padding: 18px 2px 8px;
+  }
+  .sec span { letter-spacing: 0; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .list { display: grid; gap: 6px; }
+  .row {
+    display: flex; align-items: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    min-height: 58px; padding: 2px 12px 2px 2px;
+  }
+  .fav {
+    flex: none; width: 44px; height: 44px; border: 0; background: transparent;
+    display: grid; place-items: center; cursor: pointer; border-radius: 10px;
+  }
+  .fav svg { width: 21px; height: 21px; stroke: var(--muted); fill: none; stroke-width: 1.8; stroke-linejoin: round; }
+  .fav[aria-pressed="true"] svg { stroke: var(--star); fill: var(--star); }
+  .go {
+    flex: 1; min-width: 0; min-height: 52px; padding: 6px 0;
+    border: 0; background: transparent; text-align: left; cursor: pointer;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .name { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+  .cat { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+  .price { flex: none; text-align: right; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .price b { display: block; font-size: 22px; font-weight: 800; }
+  .price .bs { display: block; font-size: 14px; font-weight: 700; margin-top: 3px; }
+  .price small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  body[data-mode="dia"] .price b { color: var(--day); }
+  body[data-mode="noche"] .price b { color: var(--night); }
+  mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 1px; }
+
+  .empty { text-align: center; color: var(--muted); padding: 48px 8px; font-size: 15px; }
+  .foot { text-align: center; color: var(--muted); font-size: 12px; padding-top: 28px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+    background: var(--fg); color: var(--bg);
+    padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: 600;
+    max-width: calc(100% - 32px); text-align: center;
+    transition: opacity .2s, transform .2s; z-index: 20;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } .icon-btn.spin svg { animation: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="top">
+      <h1>Tarifas Margarita</h1>
+      <div class="rate">
+        <button type="button" id="ratebox" class="ratebox" aria-label="Escribir la tasa a mano">
+          <span id="ratelbl">BCV</span>
+          <span class="unit"><b id="rateval">—</b> Bs/$</span>
+        </button>
+        <button type="button" id="raterefresh" class="icon-btn" aria-label="Actualizar tasa BCV">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
+        </button>
+      </div>
+    </div>
+    <form id="rateform" class="rate-form" hidden>
+      <input id="rateinput" inputmode="decimal" autocomplete="off" placeholder="Bs por dólar" aria-label="Tasa en bolívares por dólar">
+      <button type="submit" class="btn primary">Guardar</button>
+      <button type="button" id="ratecancel" class="btn">Cancelar</button>
+    </form>
+    <div class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input type="search" id="q" placeholder="Buscar destino, playa u hotel" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Buscar destino">
+      <button id="clear" type="button" aria-label="Borrar búsqueda" hidden>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Tarifa">
+        <button type="button" id="m-dia" data-mode="dia" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Día
+        </button>
+        <button type="button" id="m-noche" data-mode="noche" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.5A8.5 8.5 0 1 1 10.5 3.5a6.5 6.5 0 0 0 10 10z"/></svg>Noche
+        </button>
+      </div>
+      <span class="autotag" id="autotag">según la hora</span>
+      <button type="button" id="sort">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M3 16l4 4 4-4M14 6h7M14 12h5M14 18h3"/></svg><span id="sortlbl">A–Z</span>
+      </button>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Categoría"></div>
+  </header>
+
+  <main>
+    <div id="out"></div>
+    <p class="foot">Toca un destino para copiar la tarifa · ★ para marcarlo como frecuente<br>La tasa BCV se actualiza sola una vez al día cuando hay internet · toca la tasa para escribirla a mano<br>Lista del 11 oct 2026 · funciona sin internet</p>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  var DATA = {
+    PLAYAS: [
+      ["Bahía Constanza",23,26],["Caribe",20,25],["El Agua",20,25],
+      ["El Ángel / Moreno",3,4],["El Cardón",15,17],["Valdez",5,6],
+      ["El Yaque",22,25],["Guacuco",9,10],["Juventud",5,6],
+      ["La Restinga (Muelle)",30,35],["La Boquita",45,50],["La Galera",18,20],
+      ["La Pared",45,50],["Manzanillo",20,25],["Pampatar",3,4],
+      ["Paraíso (Guamache)",25,30],["Parguito",20,25],["Puerto Cruz",20,25],
+      ["Puerto Viejo",20,25],["Punta Arenas",45,50],["Zaragoza",20,25]
+    ],
+    HOTELES: [
+      ["Bako's Suites",4,5],["Tibisay",4,5],["Casas del Sol",4,5],
+      ["Margarita Real",4,5],["Ecoland",20,25],["Agua Dorada",20,25],
+      ["Hipocampus",5,6],["Margarita Princess",5,6],["Hesp. Isla Margarita",25,30],
+      ["Hesp. Playa El Agua",20,25],["Sun Suites",16,18],["Isla Caribe",16,18],
+      ["La Samana",5,6],["Blue Lion",5,6],["Kokobay",25,30],
+      ["Villa Malena",13,15],["Mar Bella Mar",3,4],["Margarita Int. Villas",5,6],
+      ["Dynasty",4,5],["Palm Beach",20,25],["Costa Caribe",23,30],
+      ["Colibrí",6,7],["Venetur",4,5],["Unic",6,7],["Wyndham",7,8]
+    ],
+    DESTINOS: [
+      ["Aeropuerto",20,25],["Achipano",5,6],["Agua de Vaca (Hasta la Cruz)",4,5],
+      ["Altagracia",18,20],["Apostadero",3,4],["Aricagua",18,20],
+      ["Aeropuerto - Playa El Agua",30,35],["Atamo Sur y Norte",5,6],
+      ["Av. Fco. de Mayo",5,6],["Boca de Pozo",45,48],["Boca de Río",30,35],
+      ["C.C. A B",3,4],["C.C. Pq. Costa Azul",3,4],["C.C. La Vela",4,5],
+      ["C.C. La Redoma",3,4],["C.C. Terranova Plaza",5,6],["C.C. Makro (El Valle)",6,7],
+      ["Campiare (Pampatar)",4,5],["Carapacho",18,20],["Cerro Doyey",7,8],
+      ["Chacachacare",25,28],["Ciudad Cartón",6,7],["Clínica Nva. Esparta",7,8],
+      ["Cocheima",6,7],["Capilla Valle Verde",15,17],["Colinas del Daty",14,16],
+      ["Comudo Viejo",11,13],["Costa Azul (Hasta Av. Prolg.)",4,5],
+      ["Cotopery 1, 2, 3",15,17],["El Cercado / Mago",17,19],["El Datil",14,16],
+      ["El Espinal",17,19],["El Faro - Pta. Ballena",6,7],
+      ["El Maco (San Juan) (Pueblo)",25,30],["El Guayabal",7,8],
+      ["El Mandullo",40,45],["El Morro",6,7],["El Paraíso 1 y 2",5,6],
+      ["El Piache",7,8],["El Poblado",3,4],["El Salado",10,12],
+      ["El Tirano",15,17],["El Valle",7,8],["El Valle (Las Piedras)",8,9],
+      ["Fuentidueño",22,24],["Guarame",13,15],["Guayacan",5,7],
+      ["Jorge Coll",4,5],["Juan Griego",18,20],["La Arboleda",6,7],
+      ["La Asunción (Casco Central)",5,6],["La Esnaga (San Juan)",5,6],
+      ["La Cruz del Pastor",5,6],["La Fuente",9,10],["La Fundación",5,6],
+      ["La Galera",18,20],["La Guzmania",20,25],["La Isleta 1 Muelle",20,25],
+      ["La Isleta 2",8,9],["La Mira",18,20],["La Otra Banda",7,8],
+      ["La Proveeduría",7,8],["La Sierra",18,20],["La Vecindad",15,17],
+      ["Laguna de Raya",27,32],["Las Barrancas",18,20],["Las Cabreras",17,19],
+      ["Las Gamboas",15,17],["Las Giles",20,25],["Las Guevaras",20,25],
+      ["Las Hernandez",20,25],["Las Marvales",20,25],["Las Villarroeles",18,20],
+      ["Loma de Guerra",13,15],["Los Bagres",17,19],["Los Cerritos Altos de",4,5],
+      ["Los Chacos",5,6],["Los Cocos",7,8],["Los Gomez",25,30],
+      ["Los Millanes",18,20],["Los Robles (Frente al M.)",3,4],
+      ["Macho Muerto",8,9],["Mdo. Conejeros",6,7],["Orinoco",25,30],
+      ["Polanco Abajo",3,4],["Paraguachi",15,15],["Pedregales",18,20],
+      ["Pedro González",18,20],["Pedro Luis Briceño",12,14],
+      ["Plaza Bolívar",4,7],["Puerto El Guamache",25,30],
+      ["Punta de Piedra",25,30],["Ranchos de Chana",18,20],
+      ["Rinconada Paraguachi",14,16],["Robledal",45,50],
+      ["Sabana de Guacuco",7,8],["Salamanca",6,7],["San Lorenzo",3,4],
+      ["San Antonio",10,12],["San Francisco",45,50],["San Juan Bautista",20,25],
+      ["San Sebastián",10,12],["Santa Ana",13,15],["Santa Isabel",8,9],
+      ["Santa María",25,30],["Stocchiero",5,6],["Yacarigua",10,12],
+      ["Terminal Oeste",6,7],["Urb. Lora o Arismendi",6,7],
+      ["U.R.D./Urbomar",6,7],["Valle Verde",9,10],["Villa Juana",10,12],
+      ["Villa Rosa",10,12],["Villas de San Antonio",10,12]
+    ]
+  };
+  var CATS = [["PLAYAS","Playas"],["HOTELES","Hoteles"],["DESTINOS","Destinos"]];
+  var CAT_LABEL = { PLAYAS: "Playa", HOTELES: "Hotel", DESTINOS: "Destino" };
+  var NIGHT_FROM = 18, NIGHT_TO = 6; // noche: 6:00 pm a 5:59 am
+
+  // Normaliza letra por letra (sin acentos, minúsculas) para que los índices coincidan con el texto original
+  function norm(s) {
+    var out = "";
+    for (var i = 0; i < s.length; i++) out += s[i].normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().charAt(0) || s[i];
+    return out;
+  }
+  function compact(s) { return s.replace(/[^a-z0-9]/g, ""); }
+  function esc(s) { return s.replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  var ITEMS = [];
+  CATS.forEach(function (c) {
+    DATA[c[0]].forEach(function (r) {
+      var key = norm(r[0]);
+      ITEMS.push({ id: ITEMS.length, cat: c[0], name: r[0], d: r[1], n: r[2], key: key, compact: compact(key), fk: c[0] + "|" + r[0] });
+    });
+  });
+
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  var favs = new Set(store.get("tarifasMgta.fav", []));
+  var sort = store.get("tarifasMgta.sort", "az");
+  var cat = "all";
+  var manual = false;
+  var mode = autoMode();
+
+  var $ = function (id) { return document.getElementById(id); };
+  var q = $("q"), out = $("out");
+
+  // Tasa BCV: se consulta una vez al día; sin internet se usa la última guardada
+  var RATE_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
+  var SEED_RATE = { v: 875.6505, fecha: "2026-10-09", dia: "", src: "bcv" };
+  var rate = store.get("tarifasMgta.rate", null) || SEED_RATE;
+  var fetching = false, lastTry = 0, rateErr = false;
+  var fmtBs = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function shortDate(iso) { var p = String(iso).split("-"); return p.length === 3 ? (+p[2]) + " " + MESES[+p[1] - 1] : ""; }
+  function bs(usd) { return "Bs " + fmtBs.format(usd * rate.v); }
+
+  function showRate() {
+    $("rateval").textContent = fmtBs.format(rate.v);
+    $("ratelbl").textContent = fetching ? "Actualizando…" :
+      (rate.src === "manual" ? "Manual · " + shortDate(rate.dia) : "BCV · " + shortDate(rate.fecha));
+    $("ratebox").classList.toggle("warn", rateErr && !fetching);
+    $("raterefresh").classList.toggle("spin", fetching);
+  }
+  function needsRate() { return rate.dia !== today(); }
+  function fetchRate(force) {
+    if (fetching) return;
+    if (!force && Date.now() - lastTry < 30 * 60 * 1000) return;
+    fetching = true; lastTry = Date.now(); showRate();
+    var ctrl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 10000);
+    fetch(RATE_URL, { cache: "no-store", signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function (j) {
+        var v = Number(j.promedio);
+        if (!(v > 0)) throw new Error("tasa inválida");
+        rate = { v: v, fecha: String(j.fechaActualizacion || today()).slice(0, 10), dia: today(), src: "bcv" };
+        store.set("tarifasMgta.rate", rate);
+        rateErr = false;
+        if (force) toast("Tasa BCV: " + fmtBs.format(v) + " Bs/$");
+      })
+      .catch(function () {
+        rateErr = true;
+        if (force) toast("No se pudo actualizar. Se usa la última tasa guardada.");
+      })
+      .then(function () { clearTimeout(timer); fetching = false; showRate(); render(); });
+  }
+  function parseRate(s) {
+    s = String(s).trim().replace(/\s/g, "");
+    if (s.indexOf(",") >= 0) s = s.replace(/\./g, "").replace(",", ".");
+    return parseFloat(s);
+  }
+
+  function autoMode() { var h = new Date().getHours(); return (h >= NIGHT_FROM || h < NIGHT_TO) ? "noche" : "dia"; }
+  function price(it) { return mode === "dia" ? it.d : it.n; }
+
+  function tokensOf(text) { return norm(text.trim()).split(/\s+/).filter(Boolean); }
+  function matches(it, toks) {
+    for (var i = 0; i < toks.length; i++) {
+      var t = toks[i];
+      if (it.key.indexOf(t) < 0 && it.compact.indexOf(compact(t)) < 0) return false;
+    }
+    return true;
+  }
+  function highlight(it, toks) {
+    var ranges = [];
+    toks.forEach(function (t) { var i = it.key.indexOf(t); if (i >= 0) ranges.push([i, i + t.length]); });
+    if (!ranges.length) return esc(it.name);
+    ranges.sort(function (a, b) { return a[0] - b[0]; });
+    var merged = [ranges[0]];
+    for (var i = 1; i < ranges.length; i++) {
+      var last = merged[merged.length - 1];
+      if (ranges[i][0] <= last[1]) last[1] = Math.max(last[1], ranges[i][1]); else merged.push(ranges[i]);
+    }
+    var html = "", pos = 0;
+    merged.forEach(function (r) {
+      html += esc(it.name.slice(pos, r[0])) + "<mark>" + esc(it.name.slice(r[0], r[1])) + "</mark>";
+      pos = r[1];
+    });
+    return html + esc(it.name.slice(pos));
+  }
+
+  var STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8-4.2-4.1 5.9-.9z"/></svg>';
+
+  function row(it, toks, showCat) {
+    var other = mode === "dia" ? "Noche $" + it.n : "Día $" + it.d;
+    var fav = favs.has(it.fk);
+    return '<div class="row">' +
+      '<button type="button" class="fav" data-id="' + it.id + '" aria-pressed="' + fav + '" aria-label="' + (fav ? "Quitar de frecuentes" : "Marcar como frecuente") + '">' + STAR + '</button>' +
+      '<button type="button" class="go" data-id="' + it.id + '">' +
+        '<span class="name">' + highlight(it, toks) + (showCat ? '<span class="cat">' + CAT_LABEL[it.cat] + '</span>' : '') + '</span>' +
+        '<span class="price"><b>$' + price(it) + '</b><span class="bs">' + bs(price(it)) + '</span><small>' + other + '</small></span>' +
+      '</button></div>';
+  }
+  function section(title, items, toks, showCat) {
+    return '<div class="sec">' + title + '<span>' + items.length + '</span></div><div class="list">' +
+      items.map(function (it) { return row(it, toks, showCat); }).join("") + '</div>';
+  }
+  function sorter(a, b) {
+    if (sort === "precio") { var d = price(a) - price(b); if (d) return d; }
+    return a.name.localeCompare(b.name, "es");
+  }
+
+  function render() {
+    var toks = tokensOf(q.value);
+    var pool = ITEMS.filter(function (it) { return (cat === "all" || it.cat === cat) && matches(it, toks); });
+    var html = "";
+
+    if (toks.length) {
+      if (pool.length) html = section("Resultados", pool.slice().sort(sorter), toks, cat === "all");
+    } else {
+      var f = pool.filter(function (it) { return favs.has(it.fk); }).sort(sorter);
+      if (f.length) html += section("Frecuentes", f, toks, cat === "all");
+      CATS.forEach(function (c) {
+        if (cat !== "all" && cat !== c[0]) return;
+        var rows = pool.filter(function (it) { return it.cat === c[0]; }).sort(sorter);
+        if (rows.length) html += section(c[1], rows, toks, false);
+      });
+    }
+    if (!pool.length) html = '<p class="empty">No hay ningún destino con “' + esc(q.value.trim()) + '”.<br>Prueba con otra palabra.</p>';
+
+    out.innerHTML = html;
+    $("clear").hidden = !q.value;
+  }
+
+  function applyMode() {
+    document.body.setAttribute("data-mode", mode);
+    $("m-dia").setAttribute("aria-pressed", mode === "dia");
+    $("m-noche").setAttribute("aria-pressed", mode === "noche");
+    $("autotag").hidden = manual;
+  }
+  function applySort() { $("sortlbl").textContent = sort === "precio" ? "Precio" : "A–Z"; }
+
+  function renderChips() {
+    var opts = [["all", "Todos", ITEMS.length]].concat(CATS.map(function (c) { return [c[0], c[1], DATA[c[0]].length]; }));
+    $("chips").innerHTML = opts.map(function (o) {
+      return '<button type="button" class="chip" data-cat="' + o[0] + '" aria-pressed="' + (cat === o[0]) + '">' + o[1] + '<span>' + o[2] + '</span></button>';
+    }).join("");
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
+  function copy(text) {
+    var done = function () { toast("Copiado: " + text); };
+    var fallback = function () {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand("copy");
+        ta.remove();
+        ok ? done() : toast(text);
+      } catch (e) { toast(text); }
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  }
+
+  // Eventos
+  q.addEventListener("input", function () { render(); window.scrollTo(0, 0); });
+  q.addEventListener("keydown", function (e) { if (e.key === "Enter") q.blur(); });
+  $("clear").addEventListener("click", function () { q.value = ""; render(); q.focus(); });
+
+  document.querySelector(".seg").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-mode]");
+    if (!b) return;
+    mode = b.getAttribute("data-mode"); manual = true;
+    applyMode(); render();
+  });
+  $("sort").addEventListener("click", function () {
+    sort = sort === "az" ? "precio" : "az";
+    store.set("tarifasMgta.sort", sort);
+    applySort(); render();
+  });
+  $("chips").addEventListener("click", function (e) {
+    var b = e.target.closest(".chip");
+    if (!b) return;
+    cat = b.getAttribute("data-cat");
+    renderChips(); render(); window.scrollTo(0, 0);
+  });
+  out.addEventListener("click", function (e) {
+    var fb = e.target.closest(".fav");
+    if (fb) {
+      var it = ITEMS[+fb.getAttribute("data-id")];
+      if (favs.has(it.fk)) favs.delete(it.fk); else favs.add(it.fk);
+      store.set("tarifasMgta.fav", Array.from(favs));
+      render();
+      return;
+    }
+    var go = e.target.closest(".go");
+    if (go) {
+      var it2 = ITEMS[+go.getAttribute("data-id")];
+      copy(it2.name + ": $" + price(it2) + " / " + bs(price(it2)) + " (" + (mode === "dia" ? "día" : "noche") + ")");
+    }
+  });
+
+  $("raterefresh").addEventListener("click", function () { fetchRate(true); });
+  $("ratebox").addEventListener("click", function () {
+    $("rateform").hidden = false;
+    $("rateinput").value = fmtBs.format(rate.v);
+    $("rateinput").focus();
+    $("rateinput").select();
+  });
+  $("ratecancel").addEventListener("click", function () { $("rateform").hidden = true; });
+  $("rateform").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var v = parseRate($("rateinput").value);
+    if (!(v > 0 && v < 1e7)) { toast("Escribe la tasa en Bs por dólar, por ejemplo 875,65"); return; }
+    rate = { v: v, fecha: today(), dia: today(), src: "manual" };
+    store.set("tarifasMgta.rate", rate);
+    rateErr = false;
+    $("rateform").hidden = true;
+    showRate(); render();
+    toast("Tasa guardada: " + fmtBs.format(v) + " Bs/$");
+  });
+
+  // Cada minuto: Día/Noche según la hora (si no se cambió a mano) y tasa nueva al cambiar el día
+  setInterval(function () {
+    if (needsRate()) fetchRate(false);
+    if (manual) return;
+    var m = autoMode();
+    if (m !== mode) { mode = m; applyMode(); render(); }
+  }, 60000);
+
+  applyMode(); applySort(); renderChips(); showRate(); render();
+  if (needsRate()) fetchRate(false);
+})();
+</script>
+
+</body>
+</html>
