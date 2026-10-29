@@ -509,6 +509,16 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def lan_ip():
+    # Prefiere una IP de wifi/ethernet doméstica (192.168.x / 172.16-31.x) sobre
+    # la de una VPN (suele ser 10.x) que el truco de la ruta por defecto devolvería.
+    try:
+        ips = [i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)]
+    except OSError:
+        ips = []
+    for pref in ("192.168.", "172.16.", "172.17.", "172.18.", "172.19.", "172.2", "172.30.", "172.31.", "10."):
+        for ip in ips:
+            if ip.startswith(pref):
+                return ip
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("10.255.255.255", 1))
@@ -525,5 +535,13 @@ if __name__ == "__main__":
     print("  " + url)
     print("Widget 'apagar monitor' (crea un acceso directo a esta dirección):")
     print(f"  {url}&do=off")
+    try:
+        ts = [i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET)
+              if i[4][0].startswith("100.") and 64 <= int(i[4][0].split(".")[1]) <= 127]
+    except OSError:
+        ts = []
+    for ip in ts:
+        print(f"Fuera de casa (Tailscale):  http://{ip}:{PORT}/?k={KEY}")
+        print(f"  Widget apagar monitor:    http://{ip}:{PORT}/?k={KEY}&do=off")
     print("Ctrl+C para cerrar.")
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
