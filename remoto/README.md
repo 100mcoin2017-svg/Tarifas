@@ -7,7 +7,12 @@ Convierte tu teléfono en un control remoto de tu PC con Windows, por wifi:
 - **Escribir** con el teclado del teléfono (incluye ⏎, ⌫, Tab, Esc, flechas, Win, Copiar/Pegar/Todo).
 - **Apagar y encender el monitor** de la PC. El "widget" es un acceso directo que lo apaga de un toque.
 
-## Instalación
+## La forma fácil (un clic)
+
+Con Python ya instalado, solo haz **doble clic en `INICIAR PC REMOTA.bat`**.
+Instala lo necesario la primera vez y arranca el programa. No hace falta escribir comandos.
+
+## La forma manual
 
 En la PC con Windows, con Python 3 instalado:
 
