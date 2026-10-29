@@ -63,15 +63,54 @@ WM_SYSCOMMAND = 0x0112
 SC_MONITORPOWER = 0xF170
 
 
+# El apagado real (SC_MONITORPOWER) dejó el monitor sin poder despertarse por
+# software en esta PC, así que "apagar" = cortina negra a pantalla completa:
+# no sale en la captura (se sigue viendo la PC) y deja pasar los clics.
+_curtain = {"on": False, "started": False}
+
+
+def _curtain_thread():
+    import tkinter as tk
+    root = tk.Tk()
+    root.withdraw()
+    win = tk.Toplevel(root)
+    win.overrideredirect(True)
+    win.configure(bg="black", cursor="none")
+    win.attributes("-topmost", True)
+    vx, vy = user32.GetSystemMetrics(76), user32.GetSystemMetrics(77)
+    vw, vh = user32.GetSystemMetrics(78), user32.GetSystemMetrics(79)
+    win.geometry(f"{vw}x{vh}{vx:+d}{vy:+d}")
+    win.update_idletasks()
+    hwnd = user32.GetParent(win.winfo_id()) or win.winfo_id()
+    GWL_EXSTYLE = -20
+    ex = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+    # TRANSPARENT (clics pasan) + TOOLWINDOW + NOACTIVATE
+    user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex | 0x20 | 0x80 | 0x08000000 | 0x80000)
+    user32.SetLayeredWindowAttributes(hwnd, 0, 255, 2)
+    user32.SetWindowDisplayAffinity(hwnd, 0x11)  # excluir de la captura
+    win.withdraw()
+
+    def tick():
+        if _curtain["on"] and win.state() == "withdrawn":
+            win.deiconify()
+            win.attributes("-topmost", True)
+        elif not _curtain["on"] and win.state() != "withdrawn":
+            win.withdraw()
+        root.after(150, tick)
+    tick()
+    root.mainloop()
+
+
 def monitor_off():
-    user32.PostMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, 2)
+    if not _curtain["started"]:
+        _curtain["started"] = True
+        import threading
+        threading.Thread(target=_curtain_thread, daemon=True).start()
+    _curtain["on"] = True
 
 
 def monitor_on():
-    # Un movimiento mínimo del ratón despierta el monitor
-    _mouse(MOUSEEVENTF_MOVE, 1, 0)
-    _mouse(MOUSEEVENTF_MOVE, -1, 0)
-    user32.PostMessageW(HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, -1)
+    _curtain["on"] = False
 
 
 # --- Simular ratón y teclado con SendInput ---
