@@ -1,6 +1,11 @@
 # Pantalla
 
-- `index.html`: página con un botón de **pantalla negra** (tapa la pantalla con negro; tocar para volver).
-  Se publica con GitHub Pages y funciona desde el teléfono sin depender de nada más.
-- `remoto/`: script para Windows que permite **apagar/encender el monitor** de la PC y **verla en vivo**
-  desde el teléfono. Ver `remoto/README.md`.
+Dos herramientas:
+
+- **`index.html`** — página web con un botón de **pantalla negra** (tapa la pantalla con
+  negro; tocar para volver). Se publica con GitHub Pages y se usa desde el teléfono sin
+  instalar nada.
+
+- **`remoto/`** — **PC Remota**: un programa para Windows que convierte el teléfono en
+  control remoto de la PC (ver y controlar la pantalla, escribir, y apagar/encender el
+  monitor), más un "widget" para apagar el monitor de un toque. Ver `remoto/README.md`.
