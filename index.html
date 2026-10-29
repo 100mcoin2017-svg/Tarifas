@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pantalla Negra</title>
+<style>
+  /* Una sola acción: un botón grande que tapa todo con negro; tocar la pantalla lo quita */
+  :root {
+    --bg: #eef2f1;
+    --surface: #ffffff;
+    --border: #d5dedb;
+    --fg: #12201c;
+    --muted: #596b66;
+    --accent: #0f766e;
+    --on-accent: #ffffff;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c1311; --surface: #151f1c; --border: #26342f; --fg: #e4eeeb;
+      --muted: #8b9d98; --accent: #2dd4bf; --on-accent: #062520; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c1311; --surface: #151f1c; --border: #26342f; --fg: #e4eeeb;
+    --muted: #8b9d98; --accent: #2dd4bf; --on-accent: #062520; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font); font-size: 16px; line-height: 1.4;
+    padding-block: 32px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  main { max-width: 440px; margin: 0 auto; display: grid; gap: 20px; }
+  h1 { margin: 0; font-size: 24px; letter-spacing: -.01em; text-wrap: balance; }
+  p { margin: 0; color: var(--muted); }
+  #go {
+    font: inherit; font-size: 20px; font-weight: 700; width: 100%; padding: 28px 16px;
+    border: 0; border-radius: 16px; background: var(--accent); color: var(--on-accent); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  #go svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+  #go:focus-visible, #cover:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+  .opts { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  label { display: flex; gap: 10px; align-items: center; }
+  input { width: 20px; height: 20px; accent-color: var(--accent); }
+  .note { font-size: 13px; }
+  /* Capa negra: negro puro, con una pista casi invisible para no confundirla con la pantalla apagada */
+  #cover {
+    position: fixed; inset: 0; z-index: 100; width: 100%; height: 100%; border: 0; padding: 0;
+    background: #000; color: #333; font: 12px var(--font); cursor: pointer;
+    display: grid; place-items: end center;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <h1>Pantalla negra</h1>
+  <p>Cubre la pantalla con negro puro. En pantallas OLED casi no gasta batería. Toca en cualquier lugar para volver.</p>
+  <button id="go" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>
+    Poner pantalla negra
+  </button>
+  <div class="opts">
+    <label for="fs"><input id="fs" type="checkbox" checked> Pantalla completa</label>
+    <label for="wl"><input id="wl" type="checkbox" checked> Mantener la pantalla encendida</label>
+  </div>
+  <p class="note">Esto no apaga el equipo: solo lo tapa. Un navegador no puede apagar la pantalla de verdad ni controlar otra computadora.</p>
+</main>
+<button id="cover" type="button" hidden aria-label="Toca para volver">Toca para volver</button>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var lock = null;
+  function on() {
+    $("cover").hidden = false;
+    if ($("fs").checked && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(function () {});
+    }
+    if ($("wl").checked && navigator.wakeLock) {
+      navigator.wakeLock.request("screen").then(function (l) { lock = l; }).catch(function () {});
+    }
+  }
+  function off() {
+    $("cover").hidden = true;
+    if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    if (lock) { lock.release().catch(function () {}); lock = null; }
+  }
+  $("go").addEventListener("click", on);
+  $("cover").addEventListener("click", off);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") off(); });
+})();
+</script>
+</body>
+</html>
