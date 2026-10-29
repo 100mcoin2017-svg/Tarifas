@@ -202,6 +202,12 @@
     transition: opacity .2s, transform .2s; z-index: 20;
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  /* Pantalla negra: cubre todo con negro puro hasta tocar */
+  .blackout {
+    position: fixed; inset: 0; z-index: 100; background: #000; border: 0; padding: 0;
+    width: 100%; height: 100%; cursor: pointer; display: grid; place-items: end center;
+    color: #3a3a3a; font-size: 12px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } .icon-btn.spin svg { animation: none; } }
 </style>
 </head>
@@ -215,6 +221,9 @@
         <button type="button" id="ratebox" class="ratebox" aria-label="Escribir la tasa a mano">
           <span id="ratelbl">BCV</span>
           <span class="unit"><b id="rateval">—</b> Bs/$</span>
+        </button>
+        <button type="button" id="screenoff" class="icon-btn" aria-label="Pantalla negra">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>
         </button>
         <button type="button" id="raterefresh" class="icon-btn" aria-label="Actualizar tasa BCV">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>
@@ -255,6 +264,7 @@
     <p class="foot">Toca un destino para copiar la tarifa · ★ para marcarlo como frecuente<br>La tasa BCV se actualiza sola una vez al día cuando hay internet · toca la tasa para escribirla a mano<br>Lista del 11 oct 2026 · funciona sin internet</p>
   </main>
 </div>
+<button type="button" class="blackout" id="blackout" aria-label="Toca para encender la pantalla" hidden>Toca para encender</button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -557,6 +567,18 @@
       copy(it2.name + ": $" + price(it2) + " / " + bs(price(it2)) + " (" + (mode === "dia" ? "día" : "noche") + ")");
     }
   });
+
+  // Pantalla negra: tapa todo con negro (ahorra batería en pantallas OLED); tocar o Esc la quita
+  function blackout(on) {
+    $("blackout").hidden = !on;
+    try {
+      if (on && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+      else if (!on && document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    } catch (e) {}
+  }
+  $("screenoff").addEventListener("click", function () { blackout(true); });
+  $("blackout").addEventListener("click", function () { blackout(false); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") blackout(false); });
 
   $("raterefresh").addEventListener("click", function () { fetchRate(true); });
   $("ratebox").addEventListener("click", function () {
